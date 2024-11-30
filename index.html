@@ -4,66 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>-GALAXY-</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
-            background: #000;
+            background: linear-gradient(45deg, #0a0a2e, #1a1a3a);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
         canvas {
-            display: block;
-        }
-        .upload-container {
             position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            text-align: center;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
+
+        .upload-container {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .upload-container:hover {
+            transform: translateY(-5px);
+        }
+
         .button {
             background: rgba(255, 255, 255, 0.1);
             color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            padding: 10px 20px;
-            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 50px;
             cursor: pointer;
-            font-family: Arial, sans-serif;
+            font-weight: 500;
+            font-size: 0.9rem;
             transition: all 0.3s ease;
+            margin: 10px;
+            backdrop-filter: blur(5px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-decoration: none;
             display: inline-block;
-            margin: 5px;
         }
+
         .button:hover {
             background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
         #fileInput {
             display: none;
         }
+
         #imagePreview {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
             display: none;
-            margin-top: 10px;
-            background: black;
-            image-rendering: pixelated;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
         }
-        #pixelateButton {
+
+        #pixelateButton, #downloadButton {
             display: none;
+        }
+
+        .title {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .button-container {
+            margin-top: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
         }
     </style>
 </head>
 <body>
-    <div class="upload-container">
-        <label for="fileInput" class="button">Submit Image</label>
+    <canvas id="galaxyCanvas"></canvas>
+    <div class="upload-container fade-in">
+        <h1 class="title">Image Pixelator</h1>
+        <p class="subtitle">Transform your images into stunning pixel art</p>
+        <label for="fileInput" class="button">Choose Image</label>
         <input type="file" id="fileInput" accept="image/*">
-        <button id="pixelateButton" class="button">Pixelate</button>
-        <br>
+        <div class="button-container">
+            <button id="pixelateButton" class="button">Pixelate</button>
+            <a id="downloadButton" class="button" download="pixelated-image.png">Download</a>
+        </div>
         <img id="imagePreview" alt="Preview">
     </div>
-    <canvas id="galaxyCanvas"></canvas>
-    <script src="galaxy.js"></script>
     <script>
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -78,5 +150,7 @@
             }
         });
     </script>
+    <script src="galaxy.js"></script>
 </body>
+</html>
 </html>
