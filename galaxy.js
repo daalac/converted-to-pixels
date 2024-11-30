@@ -1,9 +1,13 @@
 const canvas = document.getElementById('galaxyCanvas');
 const ctx = canvas.getContext('2d');
 
-// Set canvas size
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+// Set canvas size and handle resize
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
 // Pixel size (larger = more pixelated)
 const pixelSize = 4;
@@ -11,6 +15,31 @@ const pixelSize = 4;
 let originalImageData = null;
 const tempCanvas = document.createElement('canvas');
 const tempCtx = tempCanvas.getContext('2d');
+
+// Create starry background
+function createStars() {
+    ctx.fillStyle = '#0a0a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    for(let i = 0; i < 200; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const size = Math.random() * 2;
+        const opacity = Math.random();
+        
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// Animate stars
+function animateStars() {
+    createStars();
+    requestAnimationFrame(animateStars);
+}
+animateStars();
 
 function pixelateImage(sourceCanvas, ctx, pixelSize) {
     const imageData = ctx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
@@ -32,12 +61,26 @@ function pixelateImage(sourceCanvas, ctx, pixelSize) {
             const brightness = (r + g + b) / 3;
             
             // Only draw bright pixels
-            if (brightness > 30) {  // Threshold to remove dark pixels
+            if (brightness > 30) {
                 ctx.fillStyle = `rgb(${r},${g},${b})`;
                 ctx.fillRect(x, y, pixelSize - 1, pixelSize - 1);
             }
         }
     }
+}
+
+// Update download button
+function updateDownloadButton() {
+    const downloadButton = document.getElementById('downloadButton');
+    downloadButton.href = tempCanvas.toDataURL('image/png');
+    
+    // Show download button with fade effect
+    downloadButton.style.display = 'inline-block';
+    downloadButton.style.opacity = '0';
+    setTimeout(() => {
+        downloadButton.style.transition = 'opacity 0.3s ease';
+        downloadButton.style.opacity = '1';
+    }, 10);
 }
 
 // Handle uploaded images
@@ -49,8 +92,8 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
             const img = new Image();
             img.onload = function() {
                 // Set canvas dimensions
-                tempCanvas.width = 300;
-                tempCanvas.height = 300;
+                tempCanvas.width = 500; 
+                tempCanvas.height = 500;
                 
                 // Calculate aspect ratio
                 const aspectRatio = img.width / img.height;
@@ -79,8 +122,17 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
                 imagePreview.src = tempCanvas.toDataURL();
                 imagePreview.style.display = 'block';
                 
-                // Show pixelate button
-                document.getElementById('pixelateButton').style.display = 'inline-block';
+                // Show pixelate button with fade effect
+                const pixelateButton = document.getElementById('pixelateButton');
+                pixelateButton.style.display = 'inline-block';
+                pixelateButton.style.opacity = '0';
+                setTimeout(() => {
+                    pixelateButton.style.transition = 'opacity 0.3s ease';
+                    pixelateButton.style.opacity = '1';
+                }, 10);
+
+                // Update download button
+                updateDownloadButton();
             };
             img.src = e.target.result;
         };
@@ -88,22 +140,32 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
     }
 });
 
-// Handle pixelation toggle
+// Handle pixelation toggle with smooth transition
 let isPixelated = false;
 document.getElementById('pixelateButton').addEventListener('click', function() {
     if (!originalImageData) return;
+    
+    const imagePreview = document.getElementById('imagePreview');
+    imagePreview.style.transition = 'filter 0.3s ease';
     
     if (!isPixelated) {
         // Apply pixelation
         pixelateImage(tempCanvas, tempCtx, pixelSize);
         this.textContent = 'Original';
+        imagePreview.style.filter = 'contrast(1.1)';
     } else {
         // Restore original
         tempCtx.putImageData(originalImageData, 0, 0);
         this.textContent = 'Pixelate';
+        imagePreview.style.filter = 'none';
     }
     
-    // Update preview
+    // Update preview and download link
+    imagePreview.src = tempCanvas.toDataURL();
+    updateDownloadButton();
+    isPixelated = !isPixelated;
+});
+
     const imagePreview = document.getElementById('imagePreview');
     imagePreview.src = tempCanvas.toDataURL();
     
