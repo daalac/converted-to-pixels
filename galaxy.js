@@ -165,9 +165,3 @@ document.getElementById('pixelateButton').addEventListener('click', function() {
     updateDownloadButton();
     isPixelated = !isPixelated;
 });
-
-    const imagePreview = document.getElementById('imagePreview');
-    imagePreview.src = tempCanvas.toDataURL();
-    
-    isPixelated = !isPixelated;
-});
