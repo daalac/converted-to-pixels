@@ -131,6 +131,10 @@ document.getElementById('fileInput').addEventListener('change', function(event) 
                     pixelateButton.style.opacity = '1';
                 }, 10);
 
+                // Show edit and download buttons
+                document.getElementById('editButton').style.display = 'inline-block';
+                document.getElementById('downloadButton').style.display = 'inline-block';
+
                 // Update download button
                 updateDownloadButton();
             };
@@ -164,4 +168,215 @@ document.getElementById('pixelateButton').addEventListener('click', function() {
     imagePreview.src = tempCanvas.toDataURL();
     updateDownloadButton();
     isPixelated = !isPixelated;
+});
+
+// Handle edit button click
+document.getElementById('editButton').addEventListener('click', function() {
+    const imagePreview = document.getElementById('imagePreview');
+    if (imagePreview.src) {
+        const editWindow = window.open('', '_blank', 'width=1000,height=800');
+        editWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Edit Image</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                        background: linear-gradient(45deg, #0a0a2e, #1a1a3a);
+                        min-height: 100vh;
+                        font-family: 'Poppins', sans-serif;
+                        color: white;
+                    }
+                    .container {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 20px;
+                    }
+                    .canvas-container {
+                        position: relative;
+                        border-radius: 15px;
+                        overflow: hidden;
+                        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                    }
+                    canvas {
+                        background: white;
+                        cursor: crosshair;
+                    }
+                    .tools {
+                        display: flex;
+                        gap: 15px;
+                        padding: 15px;
+                        background: rgba(255, 255, 255, 0.1);
+                        backdrop-filter: blur(10px);
+                        border-radius: 10px;
+                        align-items: center;
+                    }
+                    input[type="color"] {
+                        width: 50px;
+                        height: 50px;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                    }
+                    input[type="range"] {
+                        width: 150px;
+                    }
+                    .tool-label {
+                        font-size: 14px;
+                        margin-right: 5px;
+                    }
+                    button {
+                        padding: 8px 16px;
+                        background: rgba(255, 255, 255, 0.1);
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        color: white;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        transition: background 0.3s;
+                    }
+                    #saveButton {
+                        background: rgba(100, 255, 100, 0.2);
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="tools">
+                        <div>
+                            <span class="tool-label">Color:</span>
+                            <input type="color" id="colorPicker" value="#000000">
+                        </div>
+                        <div>
+                            <span class="tool-label">Pixel Size:</span>
+                            <input type="range" id="pixelSize" min="1" max="20" value="4">
+                        </div>
+                        <div>
+                            <button id="eraserToggle">🖌️ Draw</button>
+                            <button id="saveButton">💾 Save</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="editCanvas"></canvas>
+                    </div>
+                </div>
+                <script>
+                    const canvas = document.getElementById('editCanvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.src = "${imagePreview.src}";
+                    
+                    img.onload = function() {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Store original image for eraser
+                        const originalCanvas = document.createElement('canvas');
+                        originalCanvas.width = img.width;
+                        originalCanvas.height = img.height;
+                        const originalCtx = originalCanvas.getContext('2d');
+                        originalCtx.drawImage(img, 0, 0);
+                        
+                        let isDrawing = false;
+                        let lastX = 0;
+                        let lastY = 0;
+                        let isErasing = false;
+                        
+                        function drawPixel(x, y) {
+                            const pixelSize = parseInt(document.getElementById('pixelSize').value);
+                            const color = document.getElementById('colorPicker').value;
+                            
+                            const pixelX = Math.floor(x / pixelSize) * pixelSize;
+                            const pixelY = Math.floor(y / pixelSize) * pixelSize;
+                            
+                            if (isErasing) {
+                                const imageData = originalCtx.getImageData(pixelX, pixelY, pixelSize, pixelSize);
+                                ctx.putImageData(imageData, pixelX, pixelY);
+                            } else {
+                                ctx.fillStyle = color;
+                                ctx.fillRect(pixelX, pixelY, pixelSize, pixelSize);
+                            }
+                        }
+                        
+                        function draw(e) {
+                            if (!isDrawing) return;
+                            
+                            const rect = canvas.getBoundingClientRect();
+                            const scaleX = canvas.width / rect.width;
+                            const scaleY = canvas.height / rect.height;
+                            
+                            const x = (e.clientX - rect.left) * scaleX;
+                            const y = (e.clientY - rect.top) * scaleY;
+                            
+                            drawPixel(x, y);
+                            
+                            const dx = x - lastX;
+                            const dy = y - lastY;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            const pixelSize = parseInt(document.getElementById('pixelSize').value);
+                            
+                            if (distance > pixelSize) {
+                                const steps = Math.floor(distance / pixelSize);
+                                for (let i = 1; i < steps; i++) {
+                                    const interpolatedX = lastX + (dx * i / steps);
+                                    const interpolatedY = lastY + (dy * i / steps);
+                                    drawPixel(interpolatedX, interpolatedY);
+                                }
+                            }
+                            
+                            lastX = x;
+                            lastY = y;
+                        }
+                        
+                        canvas.addEventListener('mousedown', (e) => {
+                            isDrawing = true;
+                            const rect = canvas.getBoundingClientRect();
+                            const scaleX = canvas.width / rect.width;
+                            const scaleY = canvas.height / rect.height;
+                            lastX = (e.clientX - rect.left) * scaleX;
+                            lastY = (e.clientY - rect.top) * scaleY;
+                        });
+                        
+                        canvas.addEventListener('mousemove', draw);
+                        canvas.addEventListener('mouseup', () => isDrawing = false);
+                        canvas.addEventListener('mouseout', () => isDrawing = false);
+                        
+                        document.getElementById('eraserToggle').addEventListener('click', function() {
+                            isErasing = !isErasing;
+                            this.textContent = isErasing ? '⌫ Erase' : '🖌️ Draw';
+                            this.style.background = isErasing ? 'rgba(255, 100, 100, 0.2)' : 'rgba(255, 255, 255, 0.1)';
+                        });
+                        
+                        document.getElementById('saveButton').addEventListener('click', function() {
+                            const link = document.createElement('a');
+                            link.download = 'edited-image.png';
+                            link.href = canvas.toDataURL('image/png');
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            
+                            const originalText = this.textContent;
+                            const originalBg = this.style.background;
+                            this.textContent = '✓ Saved!';
+                            this.style.background = 'rgba(100, 255, 100, 0.4)';
+                            
+                            setTimeout(() => {
+                                this.textContent = originalText;
+                                this.style.background = originalBg;
+                            }, 1000);
+                        });
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+    }
+});
+
+// Handle choose image button click
+document.getElementById('chooseImageButton').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
 });
