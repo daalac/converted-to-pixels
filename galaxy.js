@@ -188,6 +188,7 @@ document.getElementById('editButton').addEventListener('click', function() {
                         min-height: 100vh;
                         font-family: 'Poppins', sans-serif;
                         color: white;
+                        touch-action: none; /* Prevent default touch actions */
                     }
                     .container {
                         display: flex;
@@ -200,19 +201,29 @@ document.getElementById('editButton').addEventListener('click', function() {
                         border-radius: 15px;
                         overflow: hidden;
                         box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+                        touch-action: none;
+                        -webkit-touch-callout: none;
+                        -webkit-user-select: none;
+                        user-select: none;
+                        max-width: 100%;
+                        overflow-x: auto;
                     }
                     canvas {
                         background: white;
                         cursor: crosshair;
+                        touch-action: none;
                     }
                     .tools {
                         display: flex;
+                        flex-wrap: wrap;
                         gap: 15px;
                         padding: 15px;
                         background: rgba(255, 255, 255, 0.1);
                         backdrop-filter: blur(10px);
                         border-radius: 10px;
                         align-items: center;
+                        width: 100%;
+                        max-width: 600px;
                     }
                     input[type="color"] {
                         width: 50px;
@@ -223,22 +234,48 @@ document.getElementById('editButton').addEventListener('click', function() {
                     }
                     input[type="range"] {
                         width: 150px;
+                        height: 30px; /* Larger for touch */
                     }
                     .tool-label {
-                        font-size: 14px;
-                        margin-right: 5px;
+                        font-size: 16px;
+                        margin-right: 10px;
                     }
                     button {
-                        padding: 8px 16px;
+                        padding: 12px 24px;
                         background: rgba(255, 255, 255, 0.1);
                         border: 1px solid rgba(255, 255, 255, 0.3);
                         color: white;
                         border-radius: 5px;
                         cursor: pointer;
                         transition: background 0.3s;
+                        font-size: 16px;
+                        min-width: 100px;
+                        min-height: 44px; /* Minimum touch target size */
                     }
                     #saveButton {
                         background: rgba(100, 255, 100, 0.2);
+                    }
+                    
+                    /* Mobile-specific styles */
+                    @media (max-width: 768px) {
+                        .tools {
+                            flex-direction: column;
+                            align-items: stretch;
+                        }
+                        .tools > div {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                        }
+                        input[type="range"] {
+                            flex: 1;
+                            margin-left: 10px;
+                        }
+                        button {
+                            width: 100%;
+                            padding: 15px;
+                            margin: 5px 0;
+                        }
                     }
                 </style>
             </head>
@@ -301,13 +338,25 @@ document.getElementById('editButton').addEventListener('click', function() {
                             }
                         }
                         
+                        function startDrawing(e) {
+                            isDrawing = true;
+                            const rect = canvas.getBoundingClientRect();
+                            const scaleX = canvas.width / rect.width;
+                            const scaleY = canvas.height / rect.height;
+                            lastX = (e.clientX - rect.left) * scaleX;
+                            lastY = (e.clientY - rect.top) * scaleY;
+                        }
+
+                        function stopDrawing() {
+                            isDrawing = false;
+                        }
+
                         function draw(e) {
                             if (!isDrawing) return;
                             
                             const rect = canvas.getBoundingClientRect();
                             const scaleX = canvas.width / rect.width;
                             const scaleY = canvas.height / rect.height;
-                            
                             const x = (e.clientX - rect.left) * scaleX;
                             const y = (e.clientY - rect.top) * scaleY;
                             
@@ -330,20 +379,34 @@ document.getElementById('editButton').addEventListener('click', function() {
                             lastX = x;
                             lastY = y;
                         }
-                        
-                        canvas.addEventListener('mousedown', (e) => {
-                            isDrawing = true;
-                            const rect = canvas.getBoundingClientRect();
-                            const scaleX = canvas.width / rect.width;
-                            const scaleY = canvas.height / rect.height;
-                            lastX = (e.clientX - rect.left) * scaleX;
-                            lastY = (e.clientY - rect.top) * scaleY;
-                        });
-                        
+
+                        // Mouse Events
+                        canvas.addEventListener('mousedown', startDrawing);
                         canvas.addEventListener('mousemove', draw);
-                        canvas.addEventListener('mouseup', () => isDrawing = false);
-                        canvas.addEventListener('mouseout', () => isDrawing = false);
-                        
+                        canvas.addEventListener('mouseup', stopDrawing);
+                        canvas.addEventListener('mouseout', stopDrawing);
+
+                        // Touch Events
+                        canvas.addEventListener('touchstart', handleTouch);
+                        canvas.addEventListener('touchmove', handleTouch);
+                        canvas.addEventListener('touchend', stopDrawing);
+                        canvas.addEventListener('touchcancel', stopDrawing);
+
+                        function handleTouch(e) {
+                            e.preventDefault(); // Prevent scrolling while drawing
+                            const touch = e.touches[0];
+                            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+                                clientX: touch.clientX,
+                                clientY: touch.clientY
+                            });
+                            
+                            if (e.type === 'touchstart') {
+                                startDrawing(mouseEvent);
+                            } else if (e.type === 'touchmove') {
+                                draw(mouseEvent);
+                            }
+                        }
+
                         document.getElementById('eraserToggle').addEventListener('click', function() {
                             isErasing = !isErasing;
                             this.textContent = isErasing ? '⌫ Erase' : '🖌️ Draw';
